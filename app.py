@@ -366,7 +366,7 @@ def debug():
 
 
 if __name__ == "__main__":
-    print(f"FC 27 Stats — {NOME_CLUBE} (ID {CLUBE_ID})")
-    print("Abra http://127.0.0.1:5000 no navegador.")
+    import os
+
     port = int(os.environ.get("PORT", 5000))
-app.run(host="0.0.0.0", port=port, debug=False)
+    app.run(host="0.0.0.0", port=port, debug=False)

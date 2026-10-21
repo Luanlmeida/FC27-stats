@@ -276,6 +276,8 @@ def montar_destaques(lista):
         "garcom": gar if gar and gar["assist"] else None,
         "total_assist": sum(p["assist"] for p in lista),
         "total_mvp": sum(p["mvp"] for p in lista),
+        "top_assist": sorted([p for p in lista if p["assist"]], key=lambda p: -p["assist"])[:3],
+        "top_mvp": sorted([p for p in lista if p["mvp"]], key=lambda p: -p["mvp"])[:3],
     }
 
 
@@ -404,9 +406,12 @@ def montar_painel(periodo="tudo", ref=None):
             "gols": [m["gols"] for m in cron],
             "contra": [m["contra"] for m in cron],
             "pontos": pontos,
+            "resultados": [m["resultado"] for m in cron],
+            "adversarios": [m["adversario"] for m in cron],
         },
         "artilheiros": sorted([(p["nome"], p["gols"]) for p in lista if p["gols"]], key=lambda x: -x[1])[:8],
         "assistencias": sorted([(p["nome"], p["assist"]) for p in lista if p["assist"]], key=lambda x: -x[1])[:8],
+        "mvps": sorted([(p["nome"], p["mvp"]) for p in lista if p["mvp"]], key=lambda x: -x[1])[:8],
     }
     rotulo = "Todo o tempo" if periodo == "tudo" else dict(opcoes).get(ref, "Sem partidas registradas")
     info = {"periodo": periodo, "ref": ref, "opcoes": opcoes, "rotulo": rotulo, "n": len(sel)}

@@ -59,6 +59,12 @@ background:linear-gradient(120deg,#2a0a12,var(--card) 55%);border:1px solid var(
 .grade{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
 .grade .larga{grid-column:span 2}
 canvas{max-height:300px}
+.grade .cheia{grid-column:1/-1}
+.expl{font-size:14px;margin:-4px 0 12px}
+.resumo{margin:12px 0 0;font:600 20px "Barlow Condensed",sans-serif}
+.top{list-style:none;margin:8px 0 0;padding:0;text-align:left}
+.top li{display:flex;justify-content:space-between;gap:8px;padding:5px 2px;border-top:1px solid var(--borda);font-size:15px}
+.top em{font:700 19px "Barlow Condensed",sans-serif;font-style:normal}
 /* elenco */
 .tab{overflow-x:auto}
 .linha{display:grid;grid-template-columns:44px minmax(170px,2.4fr) repeat(5,minmax(58px,1fr)) 74px;align-items:center;gap:6px;min-width:700px;
@@ -219,10 +225,13 @@ nav .logo{display:none}nav a{flex:1;padding:6px 0}main{padding-bottom:90px}
   <section id="graficos" class="grade">
     <div class="card"><h2>Perfil do clube</h2><canvas id="gRadar"></canvas></div>
     <div class="card"><h2>Vitórias, empates e derrotas</h2><canvas id="gWdl"></canvas></div>
-    <div class="card"><h2>Pontos acumulados</h2><canvas id="gPontos"></canvas></div>
-    <div class="card larga"><h2>Gols marcados e sofridos por partida</h2><canvas id="gGols"></canvas></div>
+    <div class="card"><h2>Pontos acumulados</h2>
+      <p class="suave expl">Vitória vale 3 pontos, empate 1 e derrota 0. A linha soma os pontos jogo a jogo, da partida mais antiga (esquerda) para a mais recente (direita). Cada bolinha é uma partida: verde = vitória, dourado = empate, coral = derrota.</p>
+      <canvas id="gPontos"></canvas><p class="resumo" id="pontosResumo"></p></div>
     <div class="card"><h2>Artilheiros</h2><canvas id="gArt"></canvas></div>
-    <div class="card larga"><h2>Ranking de assistências</h2><canvas id="gAss"></canvas></div>
+    <div class="card"><h2>Assistências</h2><canvas id="gAss"></canvas></div>
+    <div class="card"><h2>Prêmios MVP</h2><canvas id="gMvp"></canvas></div>
+    <div class="card cheia"><h2>Gols marcados e sofridos por partida</h2><canvas id="gGols"></canvas></div>
   </section>
 
   {% endif %}{% if aba == 'elenco' %}
@@ -331,7 +340,9 @@ nav .logo{display:none}nav a{flex:1;padding:6px 0}main{padding-bottom:90px}
           <path d="M10 40h80v18H10z" fill="#0b0f0c" opacity=".85"/><use href="#bola" x="24" y="30" width="52" height="52"/>
           <polygon points="50,12 53,19 61,19 55,24 57,31 50,27 43,31 45,24 39,19 47,19" fill="#0b0f0c"/></svg>
         <small>Assistências do time</small>
-        <span class="num ouro">{{ d.total_assist }}</span><b>Total no elenco</b></div>
+        <span class="num ouro">{{ d.total_assist }}</span>
+        <small style="margin-top:6px">Quem mais assistiu</small>
+        <ol class="top">{% for p in d.top_assist %}<li><span>{{ loop.index }}º {{ p.nome }}</span><em class="azul">{{ p.assist }}</em></li>{% else %}<li class="suave">Sem dados</li>{% endfor %}</ol></div>
       <div class="medalha">
         <svg viewBox="0 0 120 116" role="img" aria-label="Medalha de MVP">
           <path d="M60 44C46 20 22 14 4 26c13 1 22 7 27 16-12-1-21 3-26 11 13 0 24 4 31 12-10 0-17 5-20 13 17-1 34-6 44-18z" fill="#ef0107" stroke="#8fb4f0" stroke-width="3" stroke-linejoin="round"/>
@@ -340,7 +351,9 @@ nav .logo{display:none}nav a{flex:1;padding:6px 0}main{padding-bottom:90px}
           <polygon points="60,26 62.5,32 69,32 64,36 66,43 60,39 54,43 56,36 51,32 57.5,32" fill="#c9a45c"/>
           <use href="#bola" x="40" y="46" width="40" height="40"/></svg>
         <small>Prêmios MVP registrados</small>
-        <span class="num marca">{{ d.total_mvp }}</span><b>Melhor da partida</b></div>
+        <span class="num marca">{{ d.total_mvp }}</span>
+        <small style="margin-top:6px">Quem mais foi MVP</small>
+        <ol class="top">{% for p in d.top_mvp %}<li><span>{{ loop.index }}º {{ p.nome }}</span><em class="ouro">{{ p.mvp }}</em></li>{% else %}<li class="suave">Sem dados</li>{% endfor %}</ol></div>
     </div>
   </section>
 {% endif %}
@@ -374,15 +387,34 @@ if (G.partidas.rotulos.length) {
     {label:'Marcados', data:G.partidas.gols, backgroundColor:C.vit, borderRadius:4},
     {label:'Sofridos', data:G.partidas.contra, backgroundColor:C.perda, borderRadius:4}]},
     options:{scales:{y:{beginAtZero:true,ticks:{precision:0}}}}});
-  new Chart('gPontos', {type:'line', data:{labels:G.partidas.rotulos, datasets:[{label:'Pontos', data:G.partidas.pontos,
-    borderColor:C.azul, backgroundColor:'rgba(77,143,240,.15)', fill:true, tension:.3, pointBackgroundColor:C.azul}]},
-    options:{plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true}}}});
+  const P = G.partidas, np = P.pontos.length;
+  const corRes = r => r === 'win' ? C.vit : r === 'draw' ? C.ouro : C.perda;
+  const nomeRes = {win:'Vitória', draw:'Empate', loss:'Derrota'}, ganho = {win:3, draw:1, loss:0};
+  new Chart('gPontos', {type:'line', data:{labels:P.pontos.map((_, i) => 'J' + (i + 1)), datasets:[{data:P.pontos,
+    borderColor:C.azul, backgroundColor:'rgba(77,143,240,.15)', fill:true, tension:.25, pointRadius:6, pointHoverRadius:8,
+    pointBackgroundColor:P.resultados.map(corRes), pointBorderColor:'#0b1322', pointBorderWidth:2}]},
+    options:{plugins:{legend:{display:false}, tooltip:{callbacks:{
+      title: it => 'J' + (it[0].dataIndex + 1) + ': contra ' + P.adversarios[it[0].dataIndex],
+      label: it => [nomeRes[P.resultados[it.dataIndex]] + ' ' + P.gols[it.dataIndex] + ' x ' + P.contra[it.dataIndex] + ' (+' + ganho[P.resultados[it.dataIndex]] + ' pts)',
+                    'Total acumulado: ' + it.parsed.y + ' pts']}}},
+      scales:{y:{beginAtZero:true, ticks:{precision:0}, title:{display:true, text:'Pontos somados'}},
+              x:{title:{display:true, text:'Partidas, da mais antiga (J1) para a mais recente'}}}}});
+  document.getElementById('pontosResumo').textContent = P.pontos[np - 1] + ' de ' + (np * 3) + ' pontos possíveis em ' + np + ' partida(s) (' + Math.round(P.pontos[np - 1] / (np * 3) * 100) + '%)';
 } else { vazio('gGols','Sem partidas retornadas.'); vazio('gPontos','Sem partidas retornadas.'); }
 
-const barras = (id, dados, cor) => dados.length ? new Chart(id, {type:'bar',
-  data:{labels:dados.map(d => d[0]), datasets:[{data:dados.map(d => d[1]), backgroundColor:cor, borderRadius:4}]},
-  options:{indexAxis:'y', plugins:{legend:{display:false}}, scales:{x:{beginAtZero:true,ticks:{precision:0}}}}}) : vazio(id,'Sem dados.');
-barras('gArt', G.artilheiros, C.marca); barras('gAss', G.assistencias, C.azul);
+// Jogadores no mesmo estilo do perfil do clube (radar); com menos de 3 jogadores o radar não funciona, então vira barras
+const radarJog = (id, dados, cor, fundo, nome) => {
+  if (!dados.length) return vazio(id, 'Sem dados.');
+  if (dados.length < 3) return new Chart(id, {type:'bar', data:{labels:dados.map(d => d[0]), datasets:[{data:dados.map(d => d[1]), backgroundColor:cor, borderRadius:4}]},
+    options:{indexAxis:'y', plugins:{legend:{display:false}}, scales:{x:{beginAtZero:true, ticks:{precision:0}}}}});
+  return new Chart(id, {type:'radar', data:{labels:dados.map(d => d[0] + ' ' + d[1]),
+    datasets:[{label:nome, data:dados.map(d => d[1]), borderColor:cor, backgroundColor:fundo, pointBackgroundColor:cor, borderWidth:2}]},
+    options:{plugins:{legend:{display:false}}, scales:{r:{min:0, suggestedMax:Math.max(...dados.map(d => d[1])), ticks:{display:false, precision:0},
+      angleLines:{color:'#1c2b49'}, pointLabels:{color:'#f2f5fa', font:{size:13}}}}}});
+};
+radarJog('gArt', G.artilheiros, C.marca, 'rgba(239,1,7,.28)', 'Gols');
+radarJog('gAss', G.assistencias, C.azul, 'rgba(77,143,240,.28)', 'Assistências');
+radarJog('gMvp', G.mvps, C.ouro, 'rgba(201,164,92,.28)', 'MVPs');
 {% endif %}
 
 // Ordenação do elenco

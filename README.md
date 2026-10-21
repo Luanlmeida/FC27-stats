@@ -2,7 +2,7 @@
 
 Painel de estatísticas do Pro Clubs (clube ID 749668).
 
-https://fc27-stats-arsenalcool.onrender.com/medalhas
+https://fc27-stats-arsenalcool.onrender.com
 
 ## Estrutura
 - app.py: Flask, consultas à API, cálculos e rotas

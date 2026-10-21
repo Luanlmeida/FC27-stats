@@ -2,13 +2,7 @@
 
 Painel de estatísticas do Pro Clubs (clube ID 749668).
 
-## Instalação (Windows)
-    python -m venv .venv
-    .venv\Scripts\activate
-    pip install -r requirements.txt
-    python app.py
-
-Abra http://127.0.0.1:5000
+https://fc27-stats-arsenalcool.onrender.com/medalhas
 
 ## Estrutura
 - app.py: Flask, consultas à API, cálculos e rotas

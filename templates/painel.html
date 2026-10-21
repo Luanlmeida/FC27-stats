@@ -67,7 +67,19 @@ clip-path:polygon(14px 0,100% 0,100% 100%,0 100%,0 14px);border-radius:0 8px 8px
 .linha.cab{background:none;border:0;clip-path:none;color:var(--suave);font-size:14px;padding-bottom:2px}
 .cab span[data-k]{cursor:pointer}.cab span[data-k]:hover{color:var(--marca)}
 .linha .pos{font:700 26px "Barlow Condensed",sans-serif;text-align:center;color:var(--suave)}
-.linha:nth-child(2) .pos{color:var(--ouro)}
+.jog:first-of-type .pos{color:var(--ouro)}
+.jog summary{list-style:none;cursor:pointer}
+.jog summary::-webkit-details-marker{display:none}
+.jog[open] .linha{border-color:var(--marca)}
+.desemp{min-width:700px;background:var(--card2);border:1px solid var(--borda);border-top:0;margin:-6px 0 8px;padding:16px 18px}
+.desemp h3{font-size:18px;font-weight:600;margin-bottom:12px}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:10px}
+.tiles div{background:var(--card);border-radius:10px;padding:10px 12px}
+.tiles span{color:var(--suave);font-size:13px;display:block}
+.tiles b{font:700 28px "Barlow Condensed",sans-serif}
+.notas{display:flex;align-items:flex-end;gap:6px;height:80px;margin-top:8px}
+.notas i{flex:1;max-width:34px;border-radius:5px 5px 0 0;background:var(--azul)}
+.notas i.vit{background:var(--vit)}.notas i.perda{background:var(--perda)}
 .nome b{display:block;font:600 20px "Barlow Condensed",sans-serif;text-transform:uppercase}
 .nome small{color:var(--suave)}
 .vit{color:var(--vit)}
@@ -78,7 +90,8 @@ clip-path:polygon(14px 0,100% 0,100% 100%,0 100%,0 14px);border-radius:0 8px 8px
 .ult .placar{font:700 56px "Barlow Condensed",sans-serif}
 .pill{display:inline-block;padding:3px 14px;border-radius:999px;font-size:14px;font-weight:500;color:#04100a}
 .pill.win{background:var(--vit)}.pill.draw{background:var(--ouro)}.pill.loss{background:var(--perda)}
-.filtros{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+.filtros{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center}
+.sel select{background:var(--card2);color:var(--texto);border:1px solid var(--borda);border-radius:999px;padding:8px 14px;font:inherit;font-size:14px}
 .filtros .btn.on{background:var(--marca);color:#fff;border-color:var(--marca)}
 .partida{display:grid;grid-template-columns:150px 90px 1fr 90px 100px 28px;gap:10px;align-items:center;padding:12px 6px;
 border-bottom:1px solid var(--borda);min-width:620px}
@@ -152,6 +165,16 @@ nav .logo{display:none}nav a{flex:1;padding:6px 0}main{padding-bottom:90px}
 {% set spj = ((r.gs / jg)|round(2)) if jg else 0 %}
 {% macro barra(rot, val, pct, cor) %}<div class="barra"><div class="l"><span>{{ rot }}</span><b>{{ val }}</b></div>
 <div class="t"><i style="width:{{ [pct,100]|min }}%;background:var(--{{ cor }})"></i></div></div>{% endmacro %}
+{% macro filtro() %}<div class="filtros">
+  <a class="btn {{ 'on' if info.periodo == 'tudo' }}" href="?periodo=tudo">Todo o tempo</a>
+  <a class="btn {{ 'on' if info.periodo == 'mes' }}" href="?periodo=mes">Por mês</a>
+  <a class="btn {{ 'on' if info.periodo == 'semana' }}" href="?periodo=semana">Por semana</a>
+  {% if info.periodo != 'tudo' and info.opcoes %}<form method="get" class="sel"><input type="hidden" name="periodo" value="{{ info.periodo }}">
+    <select name="ref" onchange="this.form.submit()" aria-label="Escolher período">
+    {% for k, l in info.opcoes %}<option value="{{ k }}" {{ 'selected' if k == info.ref }}>{{ l }}</option>{% endfor %}</select></form>{% endif %}
+</div>
+<p class="suave" style="margin:0 0 14px;font-size:14px">Mostrando: {{ info.rotulo }}{% if info.periodo != 'tudo' %}, {{ info.n }} partida(s){% endif %}.
+  {% if info.periodo != 'tudo' and not info.opcoes %}Ainda não há partidas guardadas.{% endif %}</p>{% endmacro %}
 
   {% if aba == 'painel' %}
   <section id="painel" class="clube">
@@ -192,6 +215,7 @@ nav .logo{display:none}nav a{flex:1;padding:6px 0}main{padding-bottom:90px}
   </section>
 
   {% endif %}{% if aba == 'graficos' %}
+  <section class="card">{{ filtro() }}</section>
   <section id="graficos" class="grade">
     <div class="card"><h2>Perfil do clube</h2><canvas id="gRadar"></canvas></div>
     <div class="card"><h2>Vitórias, empates e derrotas</h2><canvas id="gWdl"></canvas></div>
@@ -208,14 +232,32 @@ nav .logo{display:none}nav a{flex:1;padding:6px 0}main{padding-bottom:90px}
         <span data-k="jogos">Jogos</span><span data-k="gols">Gols</span><span data-k="assist">Assist.</span>
         <span data-k="nota">Nota</span><span data-k="mvp">MVP</span><span data-k="ovr">OVR</span></div>
       {% for p in jogadores|sort(attribute='ovr', reverse=True) %}
-      <div class="linha" data-jogos="{{ p.jogos }}" data-gols="{{ p.gols }}" data-assist="{{ p.assist }}" data-nota="{{ p.nota }}" data-mvp="{{ p.mvp }}" data-ovr="{{ p.ovr }}">
-        <span class="pos">{{ loop.index }}</span>
-        <div class="nome"><b>{{ p.nome }}</b><small>{{ p.pos }}</small></div>
-        <span class="v">{{ p.jogos }}</span><span class="v marca">{{ p.gols }}</span><span class="v azul">{{ p.assist }}</span>
-        <span class="v">{{ p.nota }}</span><span class="v ouro">{{ p.mvp }}</span><span class="ovr">{{ p.ovr }}</span></div>
+      <details class="jog" data-jogos="{{ p.jogos }}" data-gols="{{ p.gols }}" data-assist="{{ p.assist }}" data-nota="{{ p.nota }}" data-mvp="{{ p.mvp }}" data-ovr="{{ p.ovr }}">
+        <summary class="linha"><span class="pos">{{ loop.index }}</span>
+          <div class="nome"><b>{{ p.nome }}</b><small>{{ p.pos }}</small></div>
+          <span class="v">{{ p.jogos }}</span><span class="v marca">{{ p.gols }}</span><span class="v azul">{{ p.assist }}</span>
+          <span class="v">{{ p.nota }}</span><span class="v ouro">{{ p.mvp }}</span><span class="ovr">{{ p.ovr }}</span></summary>
+        <div class="desemp">
+        {% set g = p.rec %}
+        {% if g %}
+          <h3>Desempenho geral em {{ g.jogos }} partida(s) com dados individuais</h3>
+          <div class="tiles">
+            <div><span>Nota média</span><b class="{{ 'vit' if g.media >= 7.5 else ('perda' if 0 < g.media < 6 else '') }}">{{ g.media or '-' }}</b></div>
+            <div><span>Melhor nota</span><b>{{ g.melhor or '-' }}</b></div>
+            <div><span>Pior nota</span><b>{{ g.pior or '-' }}</b></div>
+            <div><span>Gols por jogo</span><b>{{ g.gpj }}</b></div>
+            <div><span>Assist. por jogo</span><b>{{ g.apj }}</b></div>
+            <div><span>Gols + assist.</span><b>{{ g.gols + g.assist }}</b></div>
+            <div><span>MVPs</span><b class="ouro">{{ g.mvp }}</b></div>
+          </div>
+          {% if g.forma %}<div class="suave" style="font-size:13px;margin-top:14px">Notas das últimas partidas, da mais antiga para a mais recente</div>
+          <div class="notas">{% for n in g.forma %}<i class="{{ 'vit' if n >= 7.5 else ('perda' if n < 6 else '') }}" style="height:{{ [n * 10, 100]|min }}%" title="{{ n }}"></i>{% endfor %}</div>{% endif %}
+        {% else %}<p class="suave" style="margin:0">Ainda não há partidas guardadas com dados individuais deste jogador.</p>{% endif %}
+        </div>
+      </details>
       {% else %}<p class="suave">A API não retornou jogadores. Confira em Dados brutos.</p>{% endfor %}
     </div>
-    <p class="suave" style="margin:8px 0 0;font-size:14px">Clique no título de uma coluna para ordenar.</p>
+    <p class="suave" style="margin:8px 0 0;font-size:14px">Clique no título de uma coluna para ordenar e no jogador para ver o desempenho geral.</p>
   </section>
 
   {% endif %}{% if aba == 'partidas' %}
@@ -266,6 +308,7 @@ nav .logo{display:none}nav a{flex:1;padding:6px 0}main{padding-bottom:90px}
 
   {% endif %}{% if aba == 'medalhas' %}
   <section id="medalhas" class="card"><h2>Medalhas e destaques</h2>
+    {{ filtro() }}
     <div class="medalhas">
       <div class="medalha">
         <svg viewBox="0 0 100 116"><rect x="34" y="4" width="32" height="26" fill="#ef0107" stroke="#d89a6a" stroke-width="4"/><rect x="34" y="12" width="32" height="6" fill="#0b0f0c"/>
@@ -318,9 +361,10 @@ new Chart('gRadar', {type:'radar', data:{labels:Object.keys(G.radar).map(k => k 
   datasets:[{data:Object.values(G.radar), borderColor:C.marca, backgroundColor:'rgba(239,1,7,.28)', pointBackgroundColor:C.marca, borderWidth:2}]},
   options:{plugins:{legend:{display:false}}, scales:{r:{min:0,max:100,ticks:{display:false,stepSize:25},angleLines:{color:'#1c2b49'},pointLabels:{color:'#f2f5fa',font:{size:14}}}}}});
 
+const tot = G.wdl.reduce((x, y) => x + y, 0), pct = tot ? Math.round(G.wdl[0] / tot * 1000) / 10 : 0;
 const centro = {id:'centro', afterDraw(c){const {ctx,chartArea:a}=c, x=(a.left+a.right)/2, y=(a.top+a.bottom)/2;
   ctx.save(); ctx.textAlign='center'; ctx.fillStyle='#f2f5fa'; ctx.font='700 42px Barlow Condensed, sans-serif';
-  ctx.fillText('{{ pv }}%', x, y+8); ctx.fillStyle='#8b9ab3'; ctx.font='14px Barlow, sans-serif'; ctx.fillText('vitórias', x, y+28); ctx.restore();}};
+  ctx.fillText(pct + '%', x, y+8); ctx.fillStyle='#8b9ab3'; ctx.font='14px Barlow, sans-serif'; ctx.fillText('vitórias', x, y+28); ctx.restore();}};
 new Chart('gWdl', {type:'doughnut', plugins:[centro], data:{labels:['Vitórias','Empates','Derrotas'],
   datasets:[{data:G.wdl, backgroundColor:[C.vit,C.ouro,C.perda], borderColor:'#0b1322', borderWidth:3}]},
   options:{cutout:'70%', plugins:{legend:{position:'bottom'}}}});
@@ -344,7 +388,7 @@ barras('gArt', G.artilheiros, C.marca); barras('gAss', G.assistencias, C.azul);
 // Ordenação do elenco
 document.querySelectorAll('[data-k]').forEach(h => h.addEventListener('click', () => {
   const lista = document.getElementById('lista'), k = h.dataset.k;
-  const linhas = [...lista.querySelectorAll('.linha:not(.cab)')].sort((a,b) => b.dataset[k] - a.dataset[k]);
+  const linhas = [...lista.querySelectorAll('.jog')].sort((a,b) => b.dataset[k] - a.dataset[k]);
   linhas.forEach((l,i) => { l.querySelector('.pos').textContent = i+1; lista.appendChild(l); });
 }));
 // Filtro de partidas
